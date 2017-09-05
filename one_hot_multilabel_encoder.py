@@ -14,8 +14,8 @@ class MultiColumnLabelEncoder(object):
     pandas dataframe.
 
     """
-    def __init__(self, columns=None):
-        self.columns = columns
+    def __init__(self, categorical_features=None):
+        self.columns = categorical_features
 
     def fit(self, dframe):
         """
@@ -147,11 +147,38 @@ class OneHotEncoder_(MultiColumnLabelEncoder):
     Wraps sklearn OneHotEncoder functionality for use on multiple columns of a
     pandas dataframe. First passes through MultiColumnLabelEncoder
 
+    Parameters
+    ----------
+    n_values : 'auto', int or array of ints
+        Number of values per feature.
+
+        - 'auto' : determine value range from training data.
+        - int : number of categorical values per feature.
+                Each feature value should be in ``range(n_values)``
+        - array : ``n_values[i]`` is the number of categorical values in
+                  ``X[:, i]``. Each feature value should be
+                  in ``range(n_values[i])``
+
+    categorical_features : "all" or array of indices or mask
+        Specify what features are treated as categorical.
+
+        - 'all' (default): All features are treated as categorical.
+        - array of indices: Array of categorical feature indices.
+        - mask: Array of length n_features and with dtype=bool.
+
+        Non-categorical features are always stacked to the right of the matrix.
+
+    sparse : boolean, default=False
+        Will return sparse matrix if set True else will return an array.
+    
     """
     
-    def __init__(self, columns=None, todense=False):
+    def __init__(self, columns=None, sparse=False,
+                                     n_values='auto'):
         super(self.__class__, self).__init__(columns)
-        self.one_hot_encoder = OneHotEncoder()
+        self.one_hot_encoder = OneHotEncoder(sparse=sparse,
+                                             n_values=n_values,
+                                             categorical_features=columns)
         
         
     def fit(self, dframe):        
@@ -198,8 +225,8 @@ if __name__ == "__main__":
     
     
     one_hot_enc = OneHotEncoder_(columns)
-    res2 = one_hot_enc.fit_transform(fruit_data).todense()
-    res3 = one_hot_enc.transform(fruit_data).todense()
+    res2 = one_hot_enc.fit_transform(fruit_data)
+    res3 = one_hot_enc.transform(fruit_data)
     
     
     
