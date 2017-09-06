@@ -10,7 +10,7 @@ from sklearn.preprocessing import OneHotEncoder
 import matplotlib.pyplot as plt
 
 
-class MultiColumnLabelEncoder(object):
+class CategoricalFeaturesEncoder(object):
     """
     Wraps sklearn LabelEncoder functionality for use on multiple columns of a
     pandas dataframe.
@@ -39,11 +39,25 @@ class MultiColumnLabelEncoder(object):
          
         # ndarray to hold LabelEncoder().classes_ for each
         # column; should match the shape of specified `columns`
+ 
         self.all_classes_ = np.ndarray(shape=self.columns.shape,
                                        dtype=object)
         self.all_encoders_ = np.ndarray(shape=self.columns.shape,
                                         dtype=object)
+        self.all_labels_ = np.ndarray(shape=self.columns.shape,
+                                      dtype=object)
+        self.all_frequencies_ = np.ndarray(shape=self.columns.shape,
+                                      dtype=object)
+        self.index_to_column_ = OrderedDict()
+        
         for idx, column in enumerate(self.columns):
+
+            col_values = dframe.loc[:, column].values
+
+            self.all_frequencies_[idx] = (column,
+                                          Counter(col_values))
+            self.index_to_column_[idx] = column   
+
             # fit LabelEncoder to get `classes_` for the column
             le = LabelEncoder()
             le.fit(dframe.loc[:, column].values)
@@ -53,6 +67,7 @@ class MultiColumnLabelEncoder(object):
                                               dtype=object))
             # append this column's encoder
             self.all_encoders_[idx] = le
+            self.all_labels_[idx] = le
 
         return self
 
@@ -173,16 +188,18 @@ class MultiColumnLabelEncoder(object):
 #                                   bins = bins,
 #                                   normed = normed)
         ax.set_xlabel(column_name)
-        ylabel = 'Frequency' + ('number' if normed==False else '')
+        ylabel = 'Frequency' + (' number' if normed==False else '')
         ax.set_ylabel(ylabel)
         
         ax.set_xticks(mask_integers)
-        ax.set_xticklabels(labels, rotation=45)
+        
+        labels = list(map(lambda s: s[:20], labels))
+        ax.set_xticklabels(labels, rotation=20)
 
         
         
 
-class OneHotEncoder_(MultiColumnLabelEncoder):
+class OneHotEncoder_(CategoricalFeaturesEncoder):
     """
     Wraps sklearn OneHotEncoder functionality for use on multiple columns of a
     pandas dataframe. First passes through MultiColumnLabelEncoder
@@ -240,11 +257,6 @@ class OneHotEncoder_(MultiColumnLabelEncoder):
     def transform(self, dframe):
         return self.one_hot_encoder.transform(super(self.__class__, self) \
                                     .transform(dframe))
-
-
-
-
-
         
 if __name__ == "__main__":
     
@@ -265,7 +277,7 @@ if __name__ == "__main__":
 
     
     columns = fruit_data.select_dtypes(include=[object]).columns
-    encoder = MultiColumnLabelEncoder(columns)    
+    encoder = CategoricalFeaturesEncoder(columns)    
     
     
     
