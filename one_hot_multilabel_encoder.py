@@ -28,47 +28,7 @@ class CategoricalFeaturesEncoder(object):
         Access individual column encoders via indexing
         `self.all_encoders_`
         """
-        dframe = dframe.copy()
-        self.dframe_fit = dframe.copy()
-        # if columns are provided, iterate through and get `classes_`
-        
-        
-        if self.columns is None:
-            # no columns specified; assume all are to be encoded
-            self.columns = dframe.iloc[:, :].columns
-         
-        # ndarray to hold LabelEncoder().classes_ for each
-        # column; should match the shape of specified `columns`
- 
-        self.all_classes_ = np.ndarray(shape=self.columns.shape,
-                                       dtype=object)
-        self.all_encoders_ = np.ndarray(shape=self.columns.shape,
-                                        dtype=object)
-        self.all_labels_ = np.ndarray(shape=self.columns.shape,
-                                      dtype=object)
-        self.all_frequencies_ = np.ndarray(shape=self.columns.shape,
-                                      dtype=object)
-        self.index_to_column_ = OrderedDict()
-        
-        for idx, column in enumerate(self.columns):
-
-            col_values = dframe.loc[:, column].values
-
-            self.all_frequencies_[idx] = (column,
-                                          Counter(col_values))
-            self.index_to_column_[idx] = column   
-
-            # fit LabelEncoder to get `classes_` for the column
-            le = LabelEncoder()
-            le.fit(dframe.loc[:, column].values)
-            # append the `classes_` to our ndarray container
-            self.all_classes_[idx] = (column,
-                                      np.array(le.classes_.tolist(),
-                                              dtype=object))
-            # append this column's encoder
-            self.all_encoders_[idx] = le
-            self.all_labels_[idx] = le
-
+        self.fit_transform(dframe)        
         return self
 
     def fit_transform(self, dframe):
@@ -138,15 +98,14 @@ class CategoricalFeaturesEncoder(object):
         Transform labels to normalized encoding.
         """
         dframe = dframe.copy()
-        if self.columns is not None:
-            for idx, column in enumerate(self.columns):
-                dframe.loc[:, column] = \
-                self.all_encoders_[idx].transform(dframe.loc[:, column].values)
-        else:
-            self.columns = dframe.iloc[:, :].columns
-            for idx, column in enumerate(self.columns):
-                dframe.loc[:, column] = self.all_encoders_[idx]\
-                    .transform(dframe.loc[:, column].values)
+        
+        if self.columns is None:
+            self.columns = np.array(dframe.columns, dtype=object)
+            
+        for idx, column in enumerate(self.columns):
+            dframe.loc[:, column] = \
+            self.all_encoders_[idx].transform(dframe.loc[:, column].values)
+
         return dframe  #.loc[:, self.columns].values
 
     def inverse_transform(self, dframe):
@@ -155,14 +114,11 @@ class CategoricalFeaturesEncoder(object):
         """
         dframe = dframe.copy()
         if self.columns is not None:
-            for idx, column in enumerate(self.columns):
-                dframe.loc[:, column] = self.all_encoders_[idx]\
-                    .inverse_transform(dframe.loc[:, column].values)
-        else:
-            self.columns = dframe.iloc[:, :].columns
-            for idx, column in enumerate(self.columns):
-                dframe.loc[:, column] = self.all_encoders_[idx]\
-                    .inverse_transform(dframe.loc[:, column].values)
+            self.columns = np.array(dframe.columns, dtype=object)
+        
+        for idx, column in enumerate(self.columns):
+            dframe.loc[:, column] = self.all_encoders_[idx]\
+                            .inverse_transform(dframe.loc[:, column].values)
         return dframe
 
 
@@ -190,9 +146,9 @@ class CategoricalFeaturesEncoder(object):
         ax.set_xlabel(column_name)
         ylabel = 'Frequency' + (' number' if normed==False else '')
         ax.set_ylabel(ylabel)
-        
+
         ax.set_xticks(mask_integers)
-        
+
         labels = list(map(lambda s: s[:20], labels))
         ax.set_xticklabels(labels, rotation=20)
 
